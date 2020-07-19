@@ -13,10 +13,10 @@ isHomogen <- function(v) {
 getFrequDist <- function(t) {
   return (t / sum(t))
 }
-errorCount <- function(v) {
+getErrorCount <- function(v) {
   return (sum(v[v < max(v)]))
 }
-totalCount <- function(v) {
+getTotalCount <- function(v) {
   return (sum(v))
 }
 idx <- 0
@@ -32,10 +32,14 @@ buildTree <- function(df, targetProp, classProps) {
   thisNode$id <- nodeId
   thisNode$data <- df
   thisNode$targetFrequDist <- getFrequDist(table(df[targetProp]))
-  label <- sprintf("%s|%s", thisNode$id, paste(sprintf("%.2f", thisNode$targetFrequDist), sep = "", collapse = " "))
-  thisNode$label <- label
+  thisNode$label <- sprintf("%s|%s", thisNode$id, paste(sprintf("%.2f", thisNode$targetFrequDist), sep = "", collapse = " "))
   if ((length(classProps) == 0) || isHomogen(table(df[targetProp]))) {
-    thisNode$label <- sprintf("%s|Vorhersage %s", thisNode$label, names(table(df[targetProp])))
+    thisNode$error <- getErrorCount(table(df[targetProp]))
+    thisNode$total <- getTotalCount(table(df[targetProp]))
+    thisNode$label <- sprintf("%s|Vorhersage %s|Total_Richtig_Falsch %d_%d_%d", 
+                              thisNode$label, names(table(df[targetProp])), 
+                              thisNode$total, (thisNode$total - thisNode$error), 
+                              thisNode$error)
     SetNodeStyle(thisNode, shape = "record", label=sprintf("{%s}", thisNode$label ))
     return (thisNode)
   }
