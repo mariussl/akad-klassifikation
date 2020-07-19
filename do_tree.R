@@ -3,7 +3,10 @@ library(data.tree)
 #df <- transform(df, Streckenverlauf = as.factor(Streckenverlauf), Streckenqualitaet = as.factor(Streckenqualitaet), Wind = (Wind == "Ja"), Startzeit = as.factor(Startzeit), Sieg = (Sieg == "Ja"))
 df <- read.csv("data.csv")
 df <- transform(df, Bundesland = as.factor(Bundesland), Abschluss = as.factor(Abschluss), Stellung = as.factor(Stellung), Geschlecht = as.factor(Geschlecht), Wohngebiet = as.factor(Wohngebiet), Eigenheim = (Eigenheim == "j"), Familienstand = as.factor(Familienstand), MitgliedSportverein = (MitgliedSportverein == "j"), Preiskategorie = as.factor(Preiskategorie))
-set.seed(2355)
+breaks <- c(10000,30000,52000,70000,500000)
+tags <- c("niedrig", "mittel", "hoch", "sehr hoch")
+df$EinkommensKlasse <- cut(df$Einkommen, breaks = breaks, include.lowest = TRUE, right = FALSE, labels = tags)
+set.seed(12)
 sample_idx <- sample.int(nrow(df), round(nrow(df)*0.2))
 test <- df[sample_idx,]
 train <- df[-sample_idx,]
@@ -86,7 +89,7 @@ pruneTree <- function(tree) {
     pruneTree(childNode)
     subtreeError <- subtreeError + childNode$error
   }
-  if (tree$error <= subtreeError) {
+  if (tree$error <= (subtreeError + 2)) {
     for (childNode in tree$children) {
       tree$RemoveChild(childNode$id)
     }
@@ -116,7 +119,7 @@ classifyDataFrame <- function(row) {
   return (classifyByTree(row, ptree))
 }
 #tree <- buildTree(df, "Sieg", c("Streckenverlauf", "Streckenqualitaet", "Wind", "Startzeit"))
-tree <- buildTree(train, "Preiskategorie", c("Abschluss", "Geschlecht" , "Wohngebiet" , "Stellung", 
+tree <- buildTree(train, "Preiskategorie", c("EinkommensKlasse", "Abschluss", "Geschlecht" , "Wohngebiet" , "Stellung", 
                   "Eigenheim", "Familienstand","Bundesland", "MitgliedSportverein"))
 #tree <- buildTree(train, "Preiskategorie", c("Bundesland", "MitgliedSportverein"))
 ptree <- pruneTree(Clone(tree))
