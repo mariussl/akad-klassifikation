@@ -25,7 +25,7 @@ getErrorCount <- function(v) {
 getTotalCount <- function(v) {
   return (sum(v))
 }
-idx <- 0
+idx <- 1
 baseName <- "Knoten_%i"
 getNodeId <- function() {
   id <- sprintf(baseName, idx)
@@ -34,9 +34,6 @@ getNodeId <- function() {
 }
 buildTree <- function(df, targetProp, classProps) {
   nodeId <- getNodeId()
-  if (nodeId == "Knoten_9") {
-    print("Ml")
-  }
   thisNode <- Node$new(nodeId)
   thisNode$id <- nodeId
   thisNode$data <- df
@@ -60,12 +57,18 @@ buildTree <- function(df, targetProp, classProps) {
     classPropsEntropy[classProp] <- calcEntropy(ctable)
   }
   useClassProp <- colnames(classPropsEntropy)[which(classPropsEntropy==min(classPropsEntropy))][1]
+  classPropValues <- unique(df[, useClassProp])
+  classPropValueToNodeId <- data.frame(matrix(ncol = length(classPropValues), nrow = 1))
+  colnames(classPropValueToNodeId) <- classPropValues
+  thisNode$useClassProp = useClassProp
   thisNode$label <- sprintf("%s|div by %s", thisNode$label, useClassProp)
   newClassProps <- classProps[!(classProps %in% useClassProp)]
-  for (classPropValue in unique(df[, useClassProp])) {
+  for (classPropValue in classPropValues) {
     childNode <- buildTree(df[df[useClassProp] == classPropValue, ], targetProp, newClassProps)
+    classPropValueToNodeId[, as.character(classPropValue)] <- childNode$id
     thisNode$AddChildNode(childNode)
   }
+  thisNode$classPropValueToNodeId = classPropValueToNodeId
   SetNodeStyle(thisNode, shape = "record", label=sprintf("{%s}", thisNode$label ))
   return (thisNode)
 }
@@ -88,6 +91,9 @@ pruneTree <- function(tree) {
     tree$error <- subtreeError
   }
   return (tree)
+}
+classifyByTree <- function(datarow, tree) {
+  
 }
 #tree <- buildTree(df, "Sieg", c("Streckenverlauf", "Streckenqualitaet", "Wind", "Startzeit"))
 tree <- buildTree(train, "Preiskategorie", c("Abschluss", "Geschlecht" , "Wohngebiet" , "Stellung", 
