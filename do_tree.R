@@ -53,12 +53,14 @@ buildTree <- function(df, targetProp, classProps) {
   classPropsEntropy <- data.frame(matrix(ncol = length(classProps), nrow = 1))
   colnames(classPropsEntropy) <- classProps
   for (classProp in classProps) {
-    print(sprintf("starting entropy calc for %s", classProp))
+    #print(sprintf("starting entropy calc for %s", classProp))
     ctable <- table(df[, targetProp], df[, classProp])
     classPropsEntropy[classProp] <- calcEntropy(ctable)
   }
   useClassProp <- colnames(classPropsEntropy)[which(classPropsEntropy==min(classPropsEntropy))][1]
-  classPropValues <- levels(unique(df[, useClassProp]))
+  # classPropValues only contains factor levels present in the training data
+  # thus levels could be missing that will be present in the test data
+  classPropValues <- unique(df[, useClassProp])
   classPropValueToNodeId <- data.frame(matrix(ncol = length(classPropValues), nrow = 1))
   colnames(classPropValueToNodeId) <- classPropValues
   thisNode$useClassProp = useClassProp
@@ -95,9 +97,6 @@ pruneTree <- function(tree) {
 }
 classifyByTree <- function(datarow, tree) {
   if (tree$isLeaf) {
-    if (is.null(tree$predClass)) {
-      print(sprintf("ml1: %s", tree$predClass))
-    }
     return (tree$predClass)
   }
   classPropValues <- colnames(tree$classPropValueToNodeId)
@@ -107,21 +106,23 @@ classifyByTree <- function(datarow, tree) {
       return (classifyByTree(datarow, childNode))
     } 
   }
-  print("should not happen")
+  # the present classPropValue was not trained in the data set
+  # so return a this node
+  return (tree$predClass)
 }
 classifyDataFrame <- function(row) {
-  prediction <- classifyByTree(row, ptree)
-  if (is.null(prediction)) {
-    print("ml2")
-  }
-  print(prediction)
-  return(prediction)
+  return (classifyByTree(row, ptree))
 }
 #tree <- buildTree(df, "Sieg", c("Streckenverlauf", "Streckenqualitaet", "Wind", "Startzeit"))
 tree <- buildTree(train, "Preiskategorie", c("Abschluss", "Geschlecht" , "Wohngebiet" , "Stellung", 
                   "Eigenheim", "Familienstand","Bundesland", "MitgliedSportverein"))
 #tree <- buildTree(train, "Preiskategorie", c("Bundesland", "MitgliedSportverein"))
 ptree <- pruneTree(Clone(tree))
-apply(test, 1, classifyDataFrame)
+result <- cbind(test, Vorhersage = apply(test, 1, classifyDataFrame))
+predError <- nrow(result[result$Preiskategorie != result$Vorhersage, ])
+predSuccess <- nrow(result) - predError
+print(sprintf("Von %d Vorhersagen sind %d (%1.2f%%) falsch und %d (%1.2f%%) richtig.", 
+              nrow(result), predError, (predError / nrow(result)) * 100, predSuccess,
+              (predSuccess / nrow(result)) * 100))
 #print(ptree, "label")
 #plot(tree)
