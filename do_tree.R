@@ -10,6 +10,9 @@ calcEntropy <- function(ctable) {
 isHomogen <- function(v) {
   return (length(v) - length(v[v == 0]) == 1) 
 }
+getFrequDist <- function(t) {
+  return (t / sum(t))
+}
 errorCount <- function(v) {
   return (sum(v[v < max(v)]))
 }
@@ -18,15 +21,22 @@ totalCount <- function(v) {
 }
 idx <- 0
 baseName <- "Knoten_%i"
-createNewNode <- function(df) {
-  newNode <- Node$new(sprintf(baseName, idx))
+getNodeId <- function() {
+  id <- sprintf(baseName, idx)
   idx <<- idx + 1
-  newNode$data <- df
-  return (newNode)
+  return (id)
 }
 buildTree <- function(df, targetProp, classProps) {
-  thisNode <- createNewNode(df)
+  nodeId <- getNodeId()
+  thisNode <- Node$new(nodeId)
+  thisNode$id <- nodeId
+  thisNode$data <- df
+  thisNode$targetFrequDist <- getFrequDist(table(df[targetProp]))
+  label <- sprintf("%s|%s", thisNode$id, paste(sprintf("%.2f", thisNode$targetFrequDist), sep = "", collapse = " "))
+  thisNode$label <- label
   if ((length(classProps) == 0) || isHomogen(table(df[targetProp]))) {
+    thisNode$label <- sprintf("%s|Vorhersage %s", thisNode$label, names(table(df[targetProp])))
+    SetNodeStyle(thisNode, shape = "record", label=sprintf("{%s}", thisNode$label ))
     return (thisNode)
   }
   classPropsEntropy <- data.frame(matrix(ncol = length(classProps), nrow = 1))
@@ -37,11 +47,13 @@ buildTree <- function(df, targetProp, classProps) {
     classPropsEntropy[classProp] <- calcEntropy(ctable)
   }
   useClassProp <- colnames(classPropsEntropy)[which(classPropsEntropy==min(classPropsEntropy))]
+  thisNode$label <- sprintf("%s|div by %s", thisNode$label, useClassProp)
   newClassProps <- classProps[!(classProps %in% useClassProp)]
   for (classPropValue in unique(df[, useClassProp])) {
     childNode <- buildTree(df[df[useClassProp] == classPropValue, ], targetProp, newClassProps)
     thisNode$AddChildNode(childNode)
   }
+  SetNodeStyle(thisNode, shape = "record", label=sprintf("{%s}", thisNode$label ))
   return (thisNode)
 }
 tree <- buildTree(df, "Sieg", c("Streckenverlauf", "Streckenqualitaet", "Wind", "Startzeit"))
