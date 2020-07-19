@@ -41,8 +41,9 @@ buildTree <- function(df, targetProp, classProps) {
   thisNode$label <- sprintf("%s|%s", thisNode$id, paste(sprintf("%.2f", thisNode$targetFrequDist), sep = "", collapse = " "))
   thisNode$error <- getErrorCount(table(df[targetProp]))
   thisNode$total <- getTotalCount(table(df[targetProp]))
+  thisNode$predClass <- names(which(table(df[targetProp]) == max(table(df[targetProp]))))[1]
   thisNode$label <- sprintf("%s|Vorhersage %s|Total_Richtig_Falsch %d_%d_%d", 
-                            thisNode$label, names(which(table(df[targetProp]) == max(table(df[targetProp]))))[1], 
+                            thisNode$label, thisNode$predClass, 
                             thisNode$total, (thisNode$total - thisNode$error), 
                             thisNode$error)
   if ((length(classProps) == 0) || isHomogen(table(df[targetProp]))) {
@@ -93,12 +94,25 @@ pruneTree <- function(tree) {
   return (tree)
 }
 classifyByTree <- function(datarow, tree) {
-  
+  if (tree$isLeaf) {
+    return (tree$predClass)
+  }
+  classPropValues <- colnames(tree$classPropValueToNodeId)
+  for (classPropValue in classPropValues) {
+    if (datarow[tree$useClassProp] == classPropValue) {
+      childNode <- FindNode(tree, as.character(tree$classPropValueToNodeId[classPropValue]))
+      return (classifyByTree(datarow, childNode))
+    } 
+  }
 }
 #tree <- buildTree(df, "Sieg", c("Streckenverlauf", "Streckenqualitaet", "Wind", "Startzeit"))
 tree <- buildTree(train, "Preiskategorie", c("Abschluss", "Geschlecht" , "Wohngebiet" , "Stellung", 
                   "Eigenheim", "Familienstand","Bundesland", "MitgliedSportverein"))
 #tree <- buildTree(train, "Preiskategorie", c("Bundesland", "MitgliedSportverein"))
 ptree <- pruneTree(Clone(tree))
+td <- head(test,1)
+predClass <- classifyByTree(td, ptree)
+print(td)
+print(predClass)
 #print(ptree, "label")
 #plot(tree)
