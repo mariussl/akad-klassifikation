@@ -3,7 +3,7 @@ library(data.tree)
 #df <- transform(df, Streckenverlauf = as.factor(Streckenverlauf), Streckenqualitaet = as.factor(Streckenqualitaet), Wind = (Wind == "Ja"), Startzeit = as.factor(Startzeit), Sieg = (Sieg == "Ja"))
 df <- read.csv("data.csv")
 df <- transform(df, Bundesland = as.factor(Bundesland), Abschluss = as.factor(Abschluss), Stellung = as.factor(Stellung), Geschlecht = as.factor(Geschlecht), Wohngebiet = as.factor(Wohngebiet), Eigenheim = (Eigenheim == "j"), Familienstand = as.factor(Familienstand), MitgliedSportverein = (MitgliedSportverein == "j"), Preiskategorie = as.factor(Preiskategorie))
-set.seed(1765)
+set.seed(2355)
 sample_idx <- sample.int(nrow(df), round(nrow(df)*0.2))
 test <- df[sample_idx,]
 train <- df[-sample_idx,]
@@ -60,6 +60,8 @@ buildTree <- function(df, targetProp, classProps) {
   useClassProp <- colnames(classPropsEntropy)[which(classPropsEntropy==min(classPropsEntropy))][1]
   # classPropValues only contains factor levels present in the training data
   # thus levels could be missing that will be present in the test data
+  # this is not changeable since the entropy of this property was calculated
+  # based on the occurence of the values
   classPropValues <- unique(df[, useClassProp])
   classPropValueToNodeId <- data.frame(matrix(ncol = length(classPropValues), nrow = 1))
   colnames(classPropValueToNodeId) <- classPropValues
@@ -84,7 +86,7 @@ pruneTree <- function(tree) {
     pruneTree(childNode)
     subtreeError <- subtreeError + childNode$error
   }
-  if (subtreeError >= tree$error) {
+  if (tree$error <= subtreeError) {
     for (childNode in tree$children) {
       tree$RemoveChild(childNode$id)
     }
@@ -121,6 +123,7 @@ ptree <- pruneTree(Clone(tree))
 result <- cbind(test, Vorhersage = apply(test, 1, classifyDataFrame))
 predError <- nrow(result[result$Preiskategorie != result$Vorhersage, ])
 predSuccess <- nrow(result) - predError
+print(sprintf("Der Baum hat %d Knoten", ptree$totalCount))
 print(sprintf("Von %d Vorhersagen sind %d (%1.2f%%) falsch und %d (%1.2f%%) richtig.", 
               nrow(result), predError, (predError / nrow(result)) * 100, predSuccess,
               (predSuccess / nrow(result)) * 100))
