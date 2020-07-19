@@ -58,7 +58,7 @@ buildTree <- function(df, targetProp, classProps) {
     classPropsEntropy[classProp] <- calcEntropy(ctable)
   }
   useClassProp <- colnames(classPropsEntropy)[which(classPropsEntropy==min(classPropsEntropy))][1]
-  classPropValues <- unique(df[, useClassProp])
+  classPropValues <- levels(unique(df[, useClassProp]))
   classPropValueToNodeId <- data.frame(matrix(ncol = length(classPropValues), nrow = 1))
   colnames(classPropValueToNodeId) <- classPropValues
   thisNode$useClassProp = useClassProp
@@ -95,6 +95,9 @@ pruneTree <- function(tree) {
 }
 classifyByTree <- function(datarow, tree) {
   if (tree$isLeaf) {
+    if (is.null(tree$predClass)) {
+      print(sprintf("ml1: %s", tree$predClass))
+    }
     return (tree$predClass)
   }
   classPropValues <- colnames(tree$classPropValueToNodeId)
@@ -104,15 +107,21 @@ classifyByTree <- function(datarow, tree) {
       return (classifyByTree(datarow, childNode))
     } 
   }
+  print("should not happen")
+}
+classifyDataFrame <- function(row) {
+  prediction <- classifyByTree(row, ptree)
+  if (is.null(prediction)) {
+    print("ml2")
+  }
+  print(prediction)
+  return(prediction)
 }
 #tree <- buildTree(df, "Sieg", c("Streckenverlauf", "Streckenqualitaet", "Wind", "Startzeit"))
 tree <- buildTree(train, "Preiskategorie", c("Abschluss", "Geschlecht" , "Wohngebiet" , "Stellung", 
                   "Eigenheim", "Familienstand","Bundesland", "MitgliedSportverein"))
 #tree <- buildTree(train, "Preiskategorie", c("Bundesland", "MitgliedSportverein"))
 ptree <- pruneTree(Clone(tree))
-td <- head(test,1)
-predClass <- classifyByTree(td, ptree)
-print(td)
-print(predClass)
+apply(test, 1, classifyDataFrame)
 #print(ptree, "label")
 #plot(tree)
