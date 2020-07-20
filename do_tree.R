@@ -18,10 +18,24 @@ df$KrankheitsKlasse <- cut(df$Krankheitstage, breaks = breaks, include.lowest = 
 breaks <- c(-Inf, 0, 1, 2, Inf)
 tags <- c("keine", "eines", "zwei", "2+")
 df$KinderanzahlKlasse <- cut(df$Kinderanzahl, breaks = breaks, include.lowest = TRUE, right = TRUE, labels = tags)
+breaks = c(20, 35, Inf)
+tags = c("20-35", "35+")
+df$AltersKlasse <- cut(df$Alter, breaks = breaks, include.lowest = TRUE, right = FALSE, labels = tags)
 set.seed(12)
 sample_idx <- sample.int(nrow(df), round(nrow(df)*0.2))
 test <- df[sample_idx,]
 train <- df[-sample_idx,]
+calcInfoGain <- function(target, source) {
+  targetCount <- length(target)
+  probs <- table(target)/targetCount
+  baseBits <- (-sum(probs * log2(probs)))
+  dep <- table(target, source)
+  dep_freq <- apply(dep,2,function(x){x/sum(x)})
+  dep_entropy <- apply(dep_freq, 2,function(x){ ifelse(x!=0, x * log2(x), 0)})
+  depSums <- rowSums(dep_entropy, na.rm = TRUE) * -1
+  weightedDepSum <- sum(depSums * probs)
+  return (baseBits - weightedDepSum)
+}
 calcEntropy <- function(ctable) {
   ctable_freq <- apply(ctable,2,function(x){x/sum(x)})
   ctable_entropy <- apply(ctable_freq, 2,function(x){ ifelse(x!=0, x * log2(x), 0)})
@@ -101,7 +115,7 @@ pruneTree <- function(tree) {
     pruneTree(childNode)
     subtreeError <- subtreeError + childNode$error
   }
-  if (tree$error <= (subtreeError + 2)) {
+  if (tree$error <= subtreeError) {
     for (childNode in tree$children) {
       tree$RemoveChild(childNode$id)
     }
@@ -127,13 +141,18 @@ classifyByTree <- function(datarow, tree) {
   # so return a this node
   return (tree$predClass)
 }
+calcGini <- function() {
+  
+}
 classifyDataFrame <- function(row) {
   return (classifyByTree(row, ptree))
 }
 #tree <- buildTree(df, "Sieg", c("Streckenverlauf", "Streckenqualitaet", "Wind", "Startzeit"))
-tree <- buildTree(train, "Preiskategorie", c("EinkommensKlasse", "Abschluss", "Geschlecht" , "Wohngebiet" , "Stellung", 
-                  "Eigenheim", "Familienstand", "Bundesland", "MitgliedSportverein", "KrankheitsKlasse", "KinderanzahlKlasse"))
-#tree <- buildTree(train, "Preiskategorie", c("Bundesland", "MitgliedSportverein"))
+tree <- buildTree(train, "Preiskategorie", c("EinkommensKlasse", "Abschluss", 
+                                             "Geschlecht" , "Wohngebiet" , "Stellung", 
+                                             "Eigenheim", "Familienstand", "Bundesland", 
+                                             "MitgliedSportverein", "KrankheitsKlasse", 
+                                             "KinderanzahlKlasse", "AltersKlasse"))
 ptree <- pruneTree(Clone(tree))
 print(sprintf("Der Baum hat %d Knoten", ptree$totalCount))
 result <- cbind(test, Vorhersage = apply(test, 1, classifyDataFrame))
