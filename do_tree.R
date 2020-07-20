@@ -123,12 +123,14 @@ tree <- buildTree(train, "Preiskategorie", c("EinkommensKlasse", "Abschluss", "G
                   "Eigenheim", "Familienstand","Bundesland", "MitgliedSportverein"))
 #tree <- buildTree(train, "Preiskategorie", c("Bundesland", "MitgliedSportverein"))
 ptree <- pruneTree(Clone(tree))
-result <- cbind(test, Vorhersage = apply(test, 1, classifyDataFrame))
-predError <- nrow(result[result$Preiskategorie != result$Vorhersage, ])
-predSuccess <- nrow(result) - predError
 print(sprintf("Der Baum hat %d Knoten", ptree$totalCount))
-print(sprintf("Von %d Vorhersagen sind %d (%1.2f%%) falsch und %d (%1.2f%%) richtig.", 
-              nrow(result), predError, (predError / nrow(result)) * 100, predSuccess,
-              (predSuccess / nrow(result)) * 100))
+result <- cbind(test, Vorhersage = apply(test, 1, classifyDataFrame))
+confMatrix <- (table(result$Vorhersage, result$Preiskategorie, dnn = c("Vorhersage", "Preiskategorie")) / nrow(result))
+print("Konfusionsmatrix der Vorhersage-Ergebnisse")
+print(format(confMatrix * 100, trim = TRUE, digits = 2))
+predSuccess <- sum(diag(confMatrix))
+predError <- 1 - predSuccess
+print(sprintf("Von %d Vorhersagen sind %1.2f%% richtig und %1.2f%% falsch.", 
+              nrow(result), predSuccess * 100, predError * 100))
 #print(ptree, "label")
 #plot(tree)
