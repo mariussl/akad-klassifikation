@@ -2,10 +2,18 @@ library(data.tree)
 #df <- read.csv("testdata.csv")
 #df <- transform(df, Streckenverlauf = as.factor(Streckenverlauf), Streckenqualitaet = as.factor(Streckenqualitaet), Wind = (Wind == "Ja"), Startzeit = as.factor(Startzeit), Sieg = (Sieg == "Ja"))
 df <- read.csv("data.csv")
-df <- transform(df, Bundesland = as.factor(Bundesland), Abschluss = as.factor(Abschluss), Stellung = as.factor(Stellung), Geschlecht = as.factor(Geschlecht), Wohngebiet = as.factor(Wohngebiet), Eigenheim = (Eigenheim == "j"), Familienstand = as.factor(Familienstand), MitgliedSportverein = (MitgliedSportverein == "j"), Preiskategorie = as.factor(Preiskategorie))
+df <- transform(df, Bundesland = as.factor(Bundesland),
+                Abschluss = as.factor(Abschluss), Stellung = as.factor(Stellung),
+                Geschlecht = as.factor(Geschlecht), Wohngebiet = as.factor(Wohngebiet),
+                Eigenheim = (Eigenheim == "j"), Familienstand = as.factor(Familienstand),
+                MitgliedSportverein = (MitgliedSportverein == "j"), 
+                Preiskategorie = as.factor(Preiskategorie), Kinderanzahl = as.factor(Kinderanzahl))
 breaks <- c(10000,30000,52000,70000,500000)
 tags <- c("niedrig", "mittel", "hoch", "sehr hoch")
 df$EinkommensKlasse <- cut(df$Einkommen, breaks = breaks, include.lowest = TRUE, right = FALSE, labels = tags)
+breaks <- c(0, 3, 6, 8, 20)
+tags <- c("0-3", "3-6", "6-8", "8-20")
+df$KrankheitsKlasse <- cut(df$Krankheitstage, breaks = breaks, include.lowest = TRUE, right = FALSE, labels = tags)
 set.seed(12)
 sample_idx <- sample.int(nrow(df), round(nrow(df)*0.2))
 test <- df[sample_idx,]
@@ -120,7 +128,7 @@ classifyDataFrame <- function(row) {
 }
 #tree <- buildTree(df, "Sieg", c("Streckenverlauf", "Streckenqualitaet", "Wind", "Startzeit"))
 tree <- buildTree(train, "Preiskategorie", c("EinkommensKlasse", "Abschluss", "Geschlecht" , "Wohngebiet" , "Stellung", 
-                  "Eigenheim", "Familienstand","Bundesland", "MitgliedSportverein"))
+                  "Eigenheim", "Familienstand", "Bundesland", "MitgliedSportverein", "Kinderanzahl", "KrankheitsKlasse"))
 #tree <- buildTree(train, "Preiskategorie", c("Bundesland", "MitgliedSportverein"))
 ptree <- pruneTree(Clone(tree))
 print(sprintf("Der Baum hat %d Knoten", ptree$totalCount))
@@ -132,5 +140,7 @@ predSuccess <- sum(diag(confMatrix))
 predError <- 1 - predSuccess
 print(sprintf("Von %d Vorhersagen sind %1.2f%% richtig und %1.2f%% falsch.", 
               nrow(result), predSuccess * 100, predError * 100))
+falsePredictedData <- subset(result, result$Vorhersage != result$Preiskategorie)
+print(falsePredictedData)
 #print(ptree, "label")
 #plot(tree)
