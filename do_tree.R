@@ -1,6 +1,6 @@
 library(data.tree)
-#df <- read.csv("testdata.csv")
-#df <- transform(df, Streckenverlauf = as.factor(Streckenverlauf), Streckenqualitaet = as.factor(Streckenqualitaet), Wind = (Wind == "Ja"), Startzeit = as.factor(Startzeit), Sieg = (Sieg == "Ja"))
+df2 <- read.csv("testdata.csv")
+df2 <- transform(df2, Streckenverlauf = as.factor(Streckenverlauf), Streckenqualitaet = as.factor(Streckenqualitaet), Wind = (Wind == "Ja"), Startzeit = as.factor(Startzeit), Sieg = (Sieg == "Ja"))
 df <- read.csv("data.csv")
 df <- transform(df, Bundesland = as.factor(Bundesland),
                 Abschluss = as.factor(Abschluss), Stellung = as.factor(Stellung),
@@ -36,6 +36,12 @@ calcInfoGain <- function(target, source) {
   depP <- table(source) / length(source)
   weightedDepSum <- sum(depSums * depP)
   return (baseBits - weightedDepSum)
+}
+calcSingleEntropy <- function(target) {
+  ctable_freq <- table(target)/length(target)
+  freq <- as.data.frame(ctable_freq)[,2]
+  freq <- freq[freq > 0]
+  return (-sum(freq * log2(freq)))
 }
 calcEntropy <- function(ctable) {
   ctable_freq <- apply(ctable,2,function(x){x/sum(x)})
@@ -139,12 +145,10 @@ classifyByTree <- function(datarow, tree) {
     } 
   }
   # the present classPropValue was not trained in the data set
-  # so return a this node
+  # so return this node
   return (tree$predClass)
 }
-calcGini <- function() {
-  
-}
+
 classifyDataFrame <- function(row) {
   return (classifyByTree(row, ptree))
 }
