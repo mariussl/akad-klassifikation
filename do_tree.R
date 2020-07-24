@@ -152,23 +152,67 @@ classifyByTree <- function(datarow, tree) {
 classifyDataFrame <- function(row) {
   return (classifyByTree(row, ptree))
 }
+
+evaluateTree <- function(data, seeds, tree) {
+  idx <- 0
+  errorRates <- vector(mode = "numeric", length = length(seeds))
+  successRates <- vector(mode = "numeric", length = length(seeds))
+  for (seed in seeds) {
+    idx <- idx + 1
+    set.seed(seed)
+    sample_idx <- sample.int(nrow(df), round(nrow(df)*0.2))
+    test <- df[sample_idx,]
+    train <- df[-sample_idx,]
+    #tree <- buildTree(train, "Preiskategorie", c("EinkommensKlasse", "Abschluss", 
+    #                                             "Geschlecht" , "Wohngebiet" , "Stellung", 
+    #                                             "Eigenheim", "Familienstand", "Bundesland", 
+    #                                             "MitgliedSportverein", "KrankheitsKlasse", 
+    #                                             "KinderanzahlKlasse", "AltersKlasse"))
+    tree <- buildTree(train, "Preiskategorie", c("Abschluss", 
+                                                 "Geschlecht" , "Wohngebiet" , "Stellung", 
+                                                 "Eigenheim", "Familienstand", "Bundesland", 
+                                                 "MitgliedSportverein"))
+    ptree <- pruneTree(Clone(tree))
+    print(sprintf("Der Baum hat %d Knoten", ptree$totalCount))
+    result <- cbind(test, Vorhersage = apply(test, 1, classifyDataFrame))
+    confMatrix <- (table(result$Vorhersage, result$Preiskategorie, dnn = c("Vorhersage", "Preiskategorie")) / nrow(result))
+    print("Konfusionsmatrix der Vorhersage-Ergebnisse")
+    print(format(confMatrix * 100, trim = TRUE, digits = 2))
+    predSuccess <- sum(diag(confMatrix))
+    predError <- 1 - predSuccess
+    print(sprintf("Von %d Vorhersagen sind %1.2f%% richtig und %1.2f%% falsch.", 
+                      nrow(result), predSuccess * 100, predError * 100))
+    errorRates[idx] <- predError
+    successRates[idx] <- predSuccess
+  }
+  return (data.frame(seed = seeds, errorRate = errorRates * 100, successRate = successRates * 100))
+}
+
+e <- evaluateTree(df, c(233, 5455, 546, 945, 689, 246, 6, 89, 12, 678, 4546, 334, 546, 65656, 3424324, 5676587, 423434, 6564, 2557686, 35547))
+e[1] <- lapply(e[1], as.character)
+ggplot(e, aes(x=successRate)) + geom_density(fill = "lightgray") + geom_vline(aes(xintercept=mean(successRate)), linetype = "dashed", size = 0.6, color = "#FC4E07")
+
+#set.seed(12)
+#sample_idx <- sample.int(nrow(df), round(nrow(df)*0.2))
+#test <- df[sample_idx,]
+#train <- df[-sample_idx,]
 #tree <- buildTree(df, "Sieg", c("Streckenverlauf", "Streckenqualitaet", "Wind", "Startzeit"))
-tree <- buildTree(train, "Preiskategorie", c("EinkommensKlasse", "Abschluss", 
-                                             "Geschlecht" , "Wohngebiet" , "Stellung", 
-                                             "Eigenheim", "Familienstand", "Bundesland", 
-                                             "MitgliedSportverein", "KrankheitsKlasse", 
-                                             "KinderanzahlKlasse", "AltersKlasse"))
-ptree <- pruneTree(Clone(tree))
-print(sprintf("Der Baum hat %d Knoten", ptree$totalCount))
-result <- cbind(test, Vorhersage = apply(test, 1, classifyDataFrame))
-confMatrix <- (table(result$Vorhersage, result$Preiskategorie, dnn = c("Vorhersage", "Preiskategorie")) / nrow(result))
-print("Konfusionsmatrix der Vorhersage-Ergebnisse")
-print(format(confMatrix * 100, trim = TRUE, digits = 2))
-predSuccess <- sum(diag(confMatrix))
-predError <- 1 - predSuccess
-print(sprintf("Von %d Vorhersagen sind %1.2f%% richtig und %1.2f%% falsch.", 
-              nrow(result), predSuccess * 100, predError * 100))
-falsePredictedData <- subset(result, result$Vorhersage != result$Preiskategorie)
-print(falsePredictedData)
+#tree <- buildTree(train, "Preiskategorie", c("EinkommensKlasse", "Abschluss", 
+#                                             "Geschlecht" , "Wohngebiet" , "Stellung", 
+#                                             "Eigenheim", "Familienstand", "Bundesland", 
+#                                             "MitgliedSportverein", "KrankheitsKlasse", 
+#                                             "KinderanzahlKlasse", "AltersKlasse"))
+#ptree <- pruneTree(Clone(tree))
+#print(sprintf("Der Baum hat %d Knoten", ptree$totalCount))
+#result <- cbind(test, Vorhersage = apply(test, 1, classifyDataFrame))
+#confMatrix <- (table(result$Vorhersage, result$Preiskategorie, dnn = c("Vorhersage", "Preiskategorie")) / nrow(result))
+#print("Konfusionsmatrix der Vorhersage-Ergebnisse")
+#print(format(confMatrix * 100, trim = TRUE, digits = 2))
+#predSuccess <- sum(diag(confMatrix))
+#predError <- 1 - predSuccess
+#print(sprintf("Von %d Vorhersagen sind %1.2f%% richtig und %1.2f%% falsch.", 
+#              nrow(result), predSuccess * 100, predError * 100))
+#falsePredictedData <- subset(result, result$Vorhersage != result$Preiskategorie)
+#print(falsePredictedData)
 #print(ptree, "label")
 #plot(tree)
