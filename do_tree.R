@@ -32,9 +32,19 @@ calcInfoGain <- function(target, source) {
   dep <- table(target, source)
   dep_freq <- apply(dep,2,function(x){x/sum(x)})
   dep_entropy <- apply(dep_freq, 2,function(x){ ifelse(x!=0, x * log2(x), 0)})
-  depSums <- rowSums(dep_entropy, na.rm = TRUE) * -1
-  weightedDepSum <- sum(depSums * probs)
+  depSums <- colSums(dep_entropy, na.rm = TRUE) * -1
+  depP <- table(source) / length(source)
+  weightedDepSum <- sum(depSums * depP)
   return (baseBits - weightedDepSum)
+}
+entropy <- function(target) {
+  freq <- table(target)/length(target)
+  # vectorize
+  vec <- as.data.frame(freq)[,2]
+  #drop 0 to avoid NaN resulting from log2
+  vec<-vec[vec>0]
+  #compute entropy
+ -sum(vec * log2(vec))
 }
 calcEntropy <- function(ctable) {
   ctable_freq <- apply(ctable,2,function(x){x/sum(x)})
